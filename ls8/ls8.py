@@ -99,20 +99,6 @@ class CPU:
                     continue
                 self.ram_write(self.mdr, self.mar)
                 self.mar += 1
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010,  # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111,  # PRN R0
-        #     0b00000000,
-        #     0b00000001,  # HLT
-        # ]
-
-        # while self.mar < len(program):
-        #     self.mdr = program[self.mar]
-        #     self.ram_write(self.mdr, self.mar)
-        #     self.mar += 1
 
     # ALU = math functions for the computer to do
     def alu(self, op, reg_a, reg_b):
@@ -125,48 +111,15 @@ class CPU:
             raise Exception("Unsupported ALU operation")
 
     def alu_add(self, reg_a, reg_b):
-        # 1st try
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # self.mar = self.ram_read(reg_a)
-        # self.mdr = self.mdr + self.reg[self.mar]
-        # 2nd try
-        # self.mdr = self.reg[reg_b]
-        # self.mdr = self.mdr + self.reg[reg_a]
-        # self.reg[reg_a] = self.mdr
         self.ram[reg_a] += self.ram[reg_b]
 
     def alu_mul(self, reg_a, reg_b):
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # self.mdr = self.reg[reg_b] #new
-        # # self.mar = self.ram_read(reg_a)
-        # # self.mdr = self.mdr * self.reg[self.mar]
-        # self.mdr = self.mdr * self.reg[reg_a] #new
-        # self.reg[reg_a] = self.mdr # new
         self.ram[reg_a] *= self.ram[reg_b]
 
     def alu_and(self, reg_a, reg_b):
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # self.mar = self.ram_read(reg_a)
-        # self.mdr = self.mdr & self.reg[self.mar]
-        # self.reg[self.mar] = self.mdr
-
         self.ram[reg_a] = self.ram[reg_a] & self.ram[reg_b]
 
     def alu_cmp(self, reg_a, reg_b):
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # self.mar = self.ram_read(reg_a)
-        # self.mdr = self.mdr & self.reg[self.mar]
-        # # `FL` bits: `00000LGE`
-        # if self.mdr > self.reg[self.mar]:
-        #     self.fl = 0b00000100  # reg b > reg a (L)
-        # elif self.mdr == self.reg[self.mar]:
-        #     self.fl = 0b00000001  # they are equal (E)
-        # else:
-        #     self.fl = 0b00000010  # reg a > reb a (G)
         if self.ram[reg_a] < self.ram[reg_b]:
             self.fl = 0b00000100
         if self.ram[reg_a] == self.ram[reg_b]:
@@ -175,54 +128,24 @@ class CPU:
             self.fl = 0b00000010
 
     def alu_dec(self, reg):
-        # self.mar = self.ram_read(reg)
-        # self.mdr = self.reg[self.mar]
-        # self.mdr -= 1
-        # self.reg[self.mar] = self.mdr
         self.ram[reg] -= 1
 
     def alu_inc(self, reg):
-        # self.mar = self.ram_read(reg)
-        # self.mdr = self.reg[self.mar]
-        # self.mdr += 1
-        # self.reg[self.mar] = self.mdr
         self.ram[reg] += 1
 
     def alu_div(self, reg_a, reg_b):
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # if self.mdr == 0:
-        #     print('Cannot divide by 0.')
-        #     sys.exit(1)
-        # self.mar = self.ram_read(reg_a)
-        # self.mdr = self.reg[self.mar] / self.mdr  # floor division?
-        # self.reg[self.mar] = self.mdr
         if self.ram[reg_b] == 0:
             print('Cannot divide by 0.')
             sys.exit(1)
         self.ram[reg_a] = (self.ram[reg_a] / self.ram[reg_b])
 
     def alu_not(self, reg, unused):
-        # self.mar = self.ram_read(reg)
-        # self.mdr = self.reg[self.mar]
-        # self.mdr = ~self.mdr
-        # self.reg[self.mar] = self.mdr
         self.ram[reg] = ~self.ram[reg]
 
     def alu_or(self, reg_a, reg_b):
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # self.mar = self.ram_read(reg_a)
-        # self.mdr = self.mdr | self.reg[self.mar]
-        # self.reg[self.mar] = self.mdr
         self.ram[reg_a] = self.ram[reg_a] | self.ram[reg_b]
 
     def alu_xor(self, reg_a, reg_b):
-        # self.mar = self.ram_read(reg_b)
-        # self.mdr = self.reg[self.mar]
-        # self.mar = self.ram_read(reg_a)
-        # self.mdr = self.mdr ^ self.reg[self.mar]
-        # self.reg[self.mar] = self.mdr
         self.ram[reg_a] = self.ram[reg_a] ^ self.ram[reg_b]
 
     def trace(self):
@@ -281,9 +204,6 @@ class CPU:
                 else:
                     self.instructions[self.ir](operand_a, operand_b)
 
-            # if self.ir in self.instructions:
-            #     self.instructions[self.ir]()
-
             else:
                 print(f'Unknown instruction {self.ir} at address{self.pc}')
                 sys.exit(1)
@@ -308,73 +228,50 @@ class CPU:
         self.ram[address] = data
 
     def handle_ldi(self, register, value):
-        # self.mar = self.ram_read(self.pc + 1)
-        # self.mdr = self.ram_read(self.pc + 2)
-        # self.reg[self.mar] = self.mdr
         self.ram[register] = value
-        # self.pc += 3
-        # 3 byte instruction
-        # assigning value of a register to an integer
 
     def jmp(self, register):
         self.pc = self.ram[register]
 
     def handle_prn(self, register):
-        # self.mar = self.ram_read(self.pc + 1)
         print(self.ram[register])
-        # self.pc += 2
-        # 2 byte instruction
 
     def handle_mul(self, reg_a, reg_b):
         self.alu('MUL', reg_a, reg_b)
-        # self.pc += 3
 
     def handle_add(self, reg_a, reg_b):
         self.alu('ADD', reg_a, reg_b)
-        # self.pc += 3
 
     def handle_and(self, reg_a, reg_b):
         self.alu('AND', reg_a, reg_b)
-        # self.pc += 3
 
     def handle_cmp(self, reg_a, reg_b):
         self.alu('CMP', reg_a, reg_b)
-        # self.pc += 3
 
     def handle_dec(self, reg_a):
         self.alu('DEC', reg_a, None)
-        # self.pc += 2
 
     def handle_inc(self, reg_a):
         self.alu('INC', reg_a, None)
-        # self.pc += 2
 
     def handle_div(self, reg_a, reg_b):
         self.alu('DIV', reg_a, reg_b)
-        # self.pc += 3
 
     def handle_not(self, reg_a):
         self.alu('NOT', reg_a, None)
-        # self.pc += 2
 
     def handle_or(self, reg_a, reg_b):
         self.alu('OR', reg_a, reg_b)
-        # self.pc += 3
 
     def handle_xor(self, reg_a, reg_b):
         self.alu('XOR', reg_a, reg_b)
-        # self.pc += 3
 
     def pop(self, register):
-        # self.mar = self.ram_read(self.pc + 1)
-        # self.reg[self.mar] = self.ram[self.sp]
         self.ram[register] = self.ram[self.sp]
         self.sp += 1
 
     def push(self, register):
         self.sp -= 1
-        # self.mar = self.ram_read(self.pc + 1)
-        # self.ram[self.sp] = self.reg[self.mar]
         self.ram[self.sp] = self.ram[register]
 
     def jeq(self, register):
@@ -409,7 +306,6 @@ class CPU:
 
     def handle_hlt(self):
         self.running = False
-    # self.pc += 1
 
 
 cpu = CPU()
