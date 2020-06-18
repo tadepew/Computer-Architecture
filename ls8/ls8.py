@@ -60,7 +60,9 @@ class CPU:
             0b01000101: self.push,
             0b01010100: self.jmp,
             0b01010101: self.jeq,
-            0b01010110: self.jne
+            0b01010110: self.jne,
+            0b01010000: self.call,
+            0b00010001: self.ret
 
         }
 
@@ -231,7 +233,7 @@ class CPU:
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
-            # self.fl,
+            self.fl,
             # self.ie,
             self.ram_read(self.pc),
             self.ram_read(self.pc + 1),
@@ -287,12 +289,15 @@ class CPU:
                 sys.exit(1)
             # check if instruction adds to pc at all
             program_counter_check = self.ir & 0b00010000
-            mod_program = program_counter_check
+            mod_program = program_counter_check >> 4
+            # 00010000
+            #    0001
+            # mod_program = program_counter_check
 
-            if mod_program:
+            if mod_program == 1:
                 pass
-
-            self.pc += num_operands + 1
+            else:
+                self.pc += num_operands + 1
 
     def ram_read(self, address):  # memory address
         self.mdr = self.ram[address]
@@ -312,7 +317,7 @@ class CPU:
         # assigning value of a register to an integer
 
     def jmp(self, register):
-        self.pc = register
+        self.pc = self.ram[register]
 
     def handle_prn(self, register):
         # self.mar = self.ram_read(self.pc + 1)
@@ -374,20 +379,41 @@ class CPU:
 
     def jeq(self, register):
         equal = self.fl & 0b00000001
-        if equal:
+        if equal == 1:
             self.pc = self.ram[register]
+        else:
+            self.pc += 2
 
     def jne(self, register):
         equal = self.fl & 0b00000001
-        if not equal:
+        if equal == 0:
             self.pc = self.ram[register]
+        else:
+            self.pc += 2
+
+    def call(self, register):
+        return_addr = self.pc + 2
+        self.sp -= 1
+
+        self.ram[self.sp] = return_addr
+
+        reg_num = self.ram[register]
+        subroutine_addr = reg_num
+
+        self.pc = subroutine_addr
+
+    def ret(self):
+
+        self.pc = self.ram[self.sp]
+        self.sp += 1
 
     def handle_hlt(self):
         self.running = False
-        # self.pc += 1
+    # self.pc += 1
 
 
 cpu = CPU()
 
 cpu.load()
 cpu.run()
+# cpu.trace()
