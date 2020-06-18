@@ -10,6 +10,11 @@
 #  /usr/local/bin/python3 ls8.py mult.ls8
 
 
+# the instruction is like a set of wires
+# 10000010 IR
+# first two wires represent a piece of circuitry that represent operands
+
+
 
 
 import sys
@@ -52,7 +57,10 @@ class CPU:
             0b10101010: self.handle_or,
             0b10101011: self.handle_xor,
             0b01000110: self.pop,
-            0b01000101: self.push
+            0b01000101: self.push,
+            0b01010100: self.jmp,
+            0b01010101: self.jeq,
+            0b01010110: self.jne
 
         }
 
@@ -115,79 +123,105 @@ class CPU:
             raise Exception("Unsupported ALU operation")
 
     def alu_add(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.mdr + self.reg[self.mar]
-        self.reg[self.mar] = self.mar
+        # 1st try
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # self.mar = self.ram_read(reg_a)
+        # self.mdr = self.mdr + self.reg[self.mar]
+        # 2nd try
+        # self.mdr = self.reg[reg_b]
+        # self.mdr = self.mdr + self.reg[reg_a]
+        # self.reg[reg_a] = self.mdr
+        self.ram[reg_a] += self.ram[reg_b]
 
     def alu_mul(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.mdr * self.reg[self.mar]
-        self.reg[self.mar] = self.mdr
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # self.mdr = self.reg[reg_b] #new
+        # # self.mar = self.ram_read(reg_a)
+        # # self.mdr = self.mdr * self.reg[self.mar]
+        # self.mdr = self.mdr * self.reg[reg_a] #new
+        # self.reg[reg_a] = self.mdr # new
+        self.ram[reg_a] *= self.ram[reg_b]
 
     def alu_and(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.mdr & self.reg[self.mar]
-        self.reg[self.mar] = self.mdr
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # self.mar = self.ram_read(reg_a)
+        # self.mdr = self.mdr & self.reg[self.mar]
+        # self.reg[self.mar] = self.mdr
+
+        self.ram[reg_a] = self.ram[reg_a] & self.ram[reg_b]
 
     def alu_cmp(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.mdr & self.reg[self.mar]
-        if self.mdr > self.reg[self.mar]:
-            self.fl = 0b00000100  # reg a > reg b
-        elif self.mdr == self.reg[self.mar]:
-            self.fl = 0b00000001  # they are equal
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # self.mar = self.ram_read(reg_a)
+        # self.mdr = self.mdr & self.reg[self.mar]
+        # # `FL` bits: `00000LGE`
+        # if self.mdr > self.reg[self.mar]:
+        #     self.fl = 0b00000100  # reg b > reg a (L)
+        # elif self.mdr == self.reg[self.mar]:
+        #     self.fl = 0b00000001  # they are equal (E)
+        # else:
+        #     self.fl = 0b00000010  # reg a > reb a (G)
+        if self.ram[reg_a] < self.ram[reg_b]:
+            self.fl = 0b00000100
+        if self.ram[reg_a] == self.ram[reg_b]:
+            self.fl = 0b00000001
         else:
-            self.fl = 0b00000010  # reg b > reb a
+            self.fl = 0b00000010
 
-    def alu_dec(self, reg, unused):
-        self.mar = self.ram_read(reg)
-        self.mdr = self.reg[self.mar]
-        self.mdr -= 1
-        self.reg[self.mar] = self.mdr
+    def alu_dec(self, reg):
+        # self.mar = self.ram_read(reg)
+        # self.mdr = self.reg[self.mar]
+        # self.mdr -= 1
+        # self.reg[self.mar] = self.mdr
+        self.ram[reg] -= 1
 
-    def alu_inc(self, reg, unused):
-        self.mar = self.ram_read(reg)
-        self.mdr = self.reg[self.mar]
-        self.mdr += 1
-        self.reg[self.mar] = self.mdr
+    def alu_inc(self, reg):
+        # self.mar = self.ram_read(reg)
+        # self.mdr = self.reg[self.mar]
+        # self.mdr += 1
+        # self.reg[self.mar] = self.mdr
+        self.ram[reg] += 1
 
     def alu_div(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        if self.mdr == 0:
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # if self.mdr == 0:
+        #     print('Cannot divide by 0.')
+        #     sys.exit(1)
+        # self.mar = self.ram_read(reg_a)
+        # self.mdr = self.reg[self.mar] / self.mdr  # floor division?
+        # self.reg[self.mar] = self.mdr
+        if self.ram[reg_b] == 0:
             print('Cannot divide by 0.')
             sys.exit(1)
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.reg[self.mar] / self.mdr  # floor division?
-        self.reg[self.mar] = self.mdr
+        self.ram[reg_a] = (self.ram[reg_a] / self.ram[reg_b])
 
     def alu_not(self, reg, unused):
-        self.mar = self.ram_read(reg)
-        self.mdr = self.reg[self.mar]
-        self.mdr = ~self.mdr
-        self.reg[self.mar] = self.mdr
+        # self.mar = self.ram_read(reg)
+        # self.mdr = self.reg[self.mar]
+        # self.mdr = ~self.mdr
+        # self.reg[self.mar] = self.mdr
+        self.ram[reg] = ~self.ram[reg]
 
     def alu_or(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.mdr | self.reg[self.mar]
-        self.reg[self.mar] = self.mdr
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # self.mar = self.ram_read(reg_a)
+        # self.mdr = self.mdr | self.reg[self.mar]
+        # self.reg[self.mar] = self.mdr
+        self.ram[reg_a] = self.ram[reg_a] | self.ram[reg_b]
 
     def alu_xor(self, reg_a, reg_b):
-        self.mar = self.ram_read(reg_b)
-        self.mdr = self.reg[self.mar]
-        self.mar = self.ram_read(reg_a)
-        self.mdr = self.mdr ^ self.reg[self.mar]
-        self.reg[self.mar] = self.mdr
+        # self.mar = self.ram_read(reg_b)
+        # self.mdr = self.reg[self.mar]
+        # self.mar = self.ram_read(reg_a)
+        # self.mdr = self.mdr ^ self.reg[self.mar]
+        # self.reg[self.mar] = self.mdr
+        self.ram[reg_a] = self.ram[reg_a] ^ self.ram[reg_b]
 
     def trace(self):
         """
@@ -219,99 +253,134 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            aa = self.ir >> 6
-            num_operands = (aa + 1)
+            # first two bits are the # of operands
+            # ex:
+            # 10001010
+            #      10001010 (shifted 6)
+            # 00000010
+            # evaluate number of operands
+            # binary 10
+            # the above example is 2
+            # add one for the instruction
+            # 3 operands!
+            # (no need to & because no bit higher than 2)
 
-            # if self.ir in self.instructions:
-
-            #     if num_operands == 0:
-            #         self.instructions[self.ir]()
-
-            #     elif num_operands == 1:
-            #         self.instructions[self.ir](operand_a)
-
-            #     else:
-            #         self.instructions[self.ir](operand_a, operand_b)
+            move_pc_counter = self.ir >> 6
+            num_operands = move_pc_counter
 
             if self.ir in self.instructions:
-                self.instructions[self.ir]()
+
+                if num_operands == 0:
+                    self.instructions[self.ir]()
+
+                elif num_operands == 1:
+                    self.instructions[self.ir](operand_a)
+
+                else:
+                    self.instructions[self.ir](operand_a, operand_b)
+
+            # if self.ir in self.instructions:
+            #     self.instructions[self.ir]()
 
             else:
                 print(f'Unknown instruction {self.ir} at address{self.pc}')
                 sys.exit(1)
+            # check if instruction adds to pc at all
+            program_counter_check = self.ir & 0b00010000
+            mod_program = program_counter_check
 
-            self.pc += num_operands
+            if mod_program:
+                pass
+
+            self.pc += num_operands + 1
 
     def ram_read(self, address):  # memory address
-        return self.ram[address]
+        self.mdr = self.ram[address]
+        return self.mdr
 
     def ram_write(self, data, address):
         # mdr #mar
         self.ram[address] = data
 
-    def handle_ldi(self):
-        self.mar = self.ram_read(self.pc + 1)
-        self.mdr = self.ram_read(self.pc + 2)
-        self.reg[self.mar] = self.mdr
+    def handle_ldi(self, register, value):
+        # self.mar = self.ram_read(self.pc + 1)
+        # self.mdr = self.ram_read(self.pc + 2)
+        # self.reg[self.mar] = self.mdr
+        self.ram[register] = value
         # self.pc += 3
         # 3 byte instruction
         # assigning value of a register to an integer
 
-    def handle_prn(self):
-        self.mar = self.ram_read(self.pc + 1)
-        print(self.reg[self.mar])
+    def jmp(self, register):
+        self.pc = register
+
+    def handle_prn(self, register):
+        # self.mar = self.ram_read(self.pc + 1)
+        print(self.ram[register])
         # self.pc += 2
         # 2 byte instruction
 
-    def handle_mul(self):
-        self.alu('MUL', self.pc + 1, self.pc + 2)
+    def handle_mul(self, reg_a, reg_b):
+        self.alu('MUL', reg_a, reg_b)
         # self.pc += 3
 
-    def handle_add(self):
-        self.alu('ADD', self.pc + 1, self.pc + 2)
+    def handle_add(self, reg_a, reg_b):
+        self.alu('ADD', reg_a, reg_b)
         # self.pc += 3
 
-    def handle_and(self):
-        self.alu('AND', self.pc + 1, self.pc + 2)
+    def handle_and(self, reg_a, reg_b):
+        self.alu('AND', reg_a, reg_b)
         # self.pc += 3
 
-    def handle_cmp(self):
-        self.alu('CMP', self.pc + 1, self.pc + 2)
+    def handle_cmp(self, reg_a, reg_b):
+        self.alu('CMP', reg_a, reg_b)
         # self.pc += 3
 
-    def handle_dec(self):
-        self.alu('DEC', self.pc + 1, None)
+    def handle_dec(self, reg_a):
+        self.alu('DEC', reg_a, None)
         # self.pc += 2
 
-    def handle_inc(self):
-        self.alu('INC', self.pc + 1, None)
+    def handle_inc(self, reg_a):
+        self.alu('INC', reg_a, None)
         # self.pc += 2
 
-    def handle_div(self):
-        self.alu('DIV', self.pc + 1, self.pc + 2)
+    def handle_div(self, reg_a, reg_b):
+        self.alu('DIV', reg_a, reg_b)
         # self.pc += 3
 
-    def handle_not(self):
-        self.alu('NOT', self.pc + 1, None)
+    def handle_not(self, reg_a):
+        self.alu('NOT', reg_a, None)
         # self.pc += 2
 
-    def handle_or(self):
-        self.alu('OR', self.pc + 1, self.pc + 2)
+    def handle_or(self, reg_a, reg_b):
+        self.alu('OR', reg_a, reg_b)
         # self.pc += 3
 
-    def handle_xor(self):
-        self.alu('XOR', self.pc + 1, self.pc + 2)
+    def handle_xor(self, reg_a, reg_b):
+        self.alu('XOR', reg_a, reg_b)
         # self.pc += 3
 
-    def pop(self):
-        self.mar = self.ram_read(self.pc + 1)
-        self.ram[self.mar] = self.ram[self.sp]
+    def pop(self, register):
+        # self.mar = self.ram_read(self.pc + 1)
+        # self.reg[self.mar] = self.ram[self.sp]
+        self.ram[register] = self.ram[self.sp]
         self.sp += 1
 
-    def push(self):
+    def push(self, register):
         self.sp -= 1
-        self.mar = self.ram_read(self.pc + 1)
-        self.ram[self.sp] = self.ram[self.mar]
+        # self.mar = self.ram_read(self.pc + 1)
+        # self.ram[self.sp] = self.reg[self.mar]
+        self.ram[self.sp] = self.ram[register]
+
+    def jeq(self, register):
+        equal = self.fl & 0b00000001
+        if equal:
+            self.pc = self.ram[register]
+
+    def jne(self, register):
+        equal = self.fl & 0b00000001
+        if not equal:
+            self.pc = self.ram[register]
 
     def handle_hlt(self):
         self.running = False
